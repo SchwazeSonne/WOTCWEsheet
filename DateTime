@@ -1,0 +1,25 @@
+funfunction getDateTime() {
+  
+//現在時刻を取得
+  var now = new Date();
+  
+//現在選択しているセルに時刻を入力
+  var ssA = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('スクリプトデータ');
+  ssA.getRange('A2').setValue(now);
+  
+//書式設定
+  ssA.getRange("A2").setNumberFormat("mm/dd hh:mm");
+  
+}ction getDateTime() {
+  
+//現在時刻を取得
+  var now = new Date();
+  
+//現在選択しているセルに時刻を入力
+  var ssA = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('スクリプトデータ');
+  ssA.getRange('A2').setValue(now);
+  
+//書式設定
+  ssA.getRange("A2").setNumberFormat("mm/dd hh:mm");
+  
+}
