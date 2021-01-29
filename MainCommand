@@ -1,0 +1,285 @@
+function Scraping() {
+
+  //JavaScriptを使ったデータのスクレイピング※phantomjscloudを使用
+ 
+  const URL = 'https://asia.wargaming.net/globalmap/#battles/2000011497';//Grobal Map for world of Tanks　戦闘予定(TANOC)
+  var key = 'Apikey';
+
+  
+  var option = 
+      {url:URL,
+       renderType:"HTML",
+       outputAsJson:true};
+  var payload = JSON.stringify(option);
+  payload = encodeURIComponent(payload);
+  var url = "https://phantomjscloud.com/api/browser/v2/"+ key +"/?request=" + payload;                
+  var response = UrlFetchApp.fetch(url);
+ 
+  var json = JSON.parse(response.getContentText()); 
+  var source = json["content"]["data"];
+  
+  
+//logファイルにログを書き出す
+
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName = "スクレイピング1(戦)";
+  var str = source;
+  var result = str.substr(105425);//n文字以降の文字のみ表示
+  var replaceword = /<\S{1,}?>/g;//<>で囲まれた文字列を削除※<span>など
+  var rep = result.replace(replaceword,"");
+  var ary = rep.split(/<span class="battle-province_info"><span class="battle-province_name">/);//The clan is attacking the specified province.で文字列を区切って配列格納
+  var count = ary.length; //配列変数aryの配列数を調べる
+  
+  Logger.log(ary);
+  
+  spreadSheet.getSheetByName(sheetName).getRange("A1:D100").clearContent();//セル内のコンテンツ削除※値や数式
+  
+  for (var i = 0; i < count; i++) {
+  spreadSheet.getSheetByName(sheetName).getRange(i + 1, 1).setValue(ary[i]);　//配列変数aryのi+1番目に格納されている値をセルAi+1に入力
+  }
+  
+ //Scraping2(); //Scraping2はトリガーを設定してあるのでコメントアウト
+  
+}
+
+function triggerAt() {
+
+  //指定時間トリガー(毎分起動して、指定の時間だったら次のコードを起動させる)
+ 
+  var now = new Date();
+  var mins = now.getMinutes();
+  
+  if(mins == "16.0"|mins == "31.0"|mins == "46.0"|mins == "1.0"){
+     Scraping2();
+     Logger.log("次のコードを回す");
+    }
+  Logger.log(mins);
+}
+
+function Scraping2() {
+
+  //※WOT APIを使用※プロビトーナメント情報
+ 
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName = "スクレイピング2(戦)";
+  var cell1 = spreadSheet.getSheetByName(sheetName).getRange("B3:B100").getValues();
+  var result1 = cell1.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr1 = Array.prototype.concat.apply([],result1);//2次元配列を1次元配列にする
+  var cell2 = spreadSheet.getSheetByName(sheetName).getRange("D3:D100").getValues();
+  var result2 = cell2.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr2 = Array.prototype.concat.apply([],result2);//2次元配列を1次元配列にする
+  var count = result2.length; //配列変数result2の配列数を調べる
+  
+ 
+  　//URL、データ取得のループ処理※76行目まで 
+  　var ary = [];
+    for ( var i = 0; i <= count; i++) {
+    
+  　var URL = 'https://api.worldoftanks.asia/wot/globalmap/provinces/?application_id=APPLICATIONID&front_id='+Arr1[i]+'&province_id='+Arr2[i]+'&language=en';//Grobal Map for world of Tanks　プロヴィンスのトナメ情報
+                
+  　var response = UrlFetchApp.fetch(URL);//スクレイピング
+    var response2 = response.toString();
+    //var rep = response2.replace(/"/g,"");
+    
+    ary.push(response2);
+    }
+  
+ 
+  //logファイルにログを書き出す 
+
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName2 = "スクレイピング3(戦)";
+  　
+  
+   
+  var count2 = ary.length; //配列変数aryの配列数を調べる
+  
+  Logger.log(ary);//デバック用
+  
+  spreadSheet.getSheetByName(sheetName2).getRange("A1:D100").clearContent();//セル内のコンテンツ削除※値や数式
+  
+  for (var k = 0; k < count2; k++) {
+  spreadSheet.getSheetByName(sheetName2).getRange(k + 1, 1).setValue(ary[k]);　//配列変数aryのi+1番目に格納されている値をセルAi+1に入力
+  }
+  
+  Scraping3(); 
+  
+}
+
+
+
+function Scraping3() {
+
+  //WOT APIを使用※敵クラン名検索
+ 
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName = "スクレイピング4(戦)";
+  var cell = spreadSheet.getSheetByName(sheetName).getRange("F2:F100").getValues();
+  var result = cell.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr = Array.prototype.concat.apply([],result);//2次元配列を1次元配列にする
+  var count = Arr.length; //配列変数Arrの配列数を調べる
+  
+ 
+  　//URL、データ取得のループ処理※130行目まで 
+  　var ary = [];
+    for ( var i = 0; i <= count-1; i++) {
+    
+    var URL = 'https://api.worldoftanks.asia/wot/clans/info/?application_id=APPLICATIONID&clan_id='+Arr[i];//Grobal Map for world of Tanks　プロヴィンスのクラン情報
+                
+    var response = UrlFetchApp.fetch(URL);//スクレイピング
+    var response2 = response.toString();
+    var mat = response2.match(/"tag":"(.+?)"/g);
+    
+    
+    
+    ary.push(mat);
+    }
+  
+ 
+  //logファイルにログを書き出す 
+
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName2 = "スクレイピング4(戦)";
+  　
+  
+   
+  var count2 = ary.length; //配列変数aryの配列数を調べる
+  
+  Logger.log(mat);//デバック用
+  
+  spreadSheet.getSheetByName(sheetName2).getRange("G2:G100").clearContent();//セル内のコンテンツ削除※値や数式
+  
+  for (var k = 0; k < count2; k++) {
+  spreadSheet.getSheetByName(sheetName2).getRange(k + 2, 7).setValue(ary[k]);　//配列変数aryのi+1番目に格納されている値をセルAk+1に入力
+  }
+  
+  Memo();
+  
+}
+
+function Memo() {
+
+  //戦闘情報をメモとして挿入
+
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName = "スクレイピング4(戦)";
+  var cell = spreadSheet.getSheetByName(sheetName).getRange("E2:E100").getValues();//表示セル
+  var result = cell.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr = Array.prototype.concat.apply([],result);//2次元配列を1次元配列にする
+  var count = Arr.length; //配列変数Arrの配列数を調べる
+  
+  var cell2 = spreadSheet.getSheetByName(sheetName).getRange("I2:I100").getValues();//開始陣地
+  var result2 = cell2.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr2 = Array.prototype.concat.apply([],result2);//2次元配列を1次元配列にする
+  
+  var cell3 = spreadSheet.getSheetByName(sheetName).getRange("H2:H100").getValues();//相手クラン名
+  var result3 = cell3.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr3 = Array.prototype.concat.apply([],result3);//2次元配列を1次元配列にする
+  
+  var cell4 = spreadSheet.getSheetByName(sheetName).getRange("D2:D100").getValues();//開始時間
+  var result4 = cell4.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr4 = Array.prototype.concat.apply([],result4);//2次元配列を1次元配列にする
+  var Brr4 = Arr4.filter(function(value){return (value[1] !== '--')}); //空白要素の配列を削除
+  
+  var cell5 = spreadSheet.getSheetByName(sheetName).getRange("J2:J100").getValues();//メモ書き表示セル
+  var result5 = cell5.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr5 = Array.prototype.concat.apply([],result5);//2次元配列を1次元配列にする
+  
+  var cell6 = spreadSheet.getSheetByName(sheetName).getRange("A2:A100").getValues();//プロヴィンス名
+  var result6 = cell6.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr6 = Array.prototype.concat.apply([],result6);//2次元配列を1次元配列にする
+  
+  var cell7 = spreadSheet.getSheetByName(sheetName).getRange("K2:K100").getValues();//マップ名
+  var result7 = cell7.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr7 = Array.prototype.concat.apply([],result7);//2次元配列を1次元配列にする
+  
+  var cell8 = spreadSheet.getSheetByName(sheetName).getRange("L2:L100").getValues();//戦線名
+  var result8 = cell8.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr8 = Array.prototype.concat.apply([],result8);//2次元配列を1次元配列にする
+  
+  var cell9 = spreadSheet.getSheetByName(sheetName).getRange("M2:M100").getValues();//format
+  var result9 = cell9.filter(function(value){return (value[0].length > 0)});//空白要素の配列を削除
+  var Arr9 = Array.prototype.concat.apply([],result9);//2次元配列を1次元配列にする
+  
+  var sheetName2 = "戦闘予定(CWE用)";
+  var sheetName3 = "対戦相手判別用";
+  var sheetName4 = "CWE戦闘予定(見る用)";
+  
+  for ( var i = 0; i < count; i++) {
+      
+      if(Arr5[i] !== "--"){
+       if(spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).getValue() === "?" || spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).getValue() === "@" || spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).getValue() === "×"){
+          spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).clearNote();
+          spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).setNote( "Start time:    " + Arr4[i] + String.fromCharCode(10) + String.fromCharCode(10) + "front name:    " + Arr8[i] + String.fromCharCode(10) + "Province name:    " + Arr6[i] + String.fromCharCode(10) + "Map name:    " + Arr7[i] + String.fromCharCode(10) + String.fromCharCode(10) + "format:    " + Arr9[i] + String.fromCharCode(10) + "Start side:    " + Arr2[i] + String.fromCharCode(10) + "Enemy clan name:    " + Arr3[i]);
+           
+          if(spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).getValue() === "×"){
+            var memo = spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).getNote(); //該当するセルのメモを参照
+          
+             spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).clearNote();　//該当するセルのメモを消去
+             spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).setNote( memo + String.fromCharCode(10) + String.fromCharCode(10) + "Commander:    " + "?" + String.fromCharCode(10) + "Result:    " + "敗北");　//該当するセルのメモを記入      
+         }
+         
+          if(Arr2[i] === "seed"){
+             //spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).setValue("→");
+             var memo = spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).getNote(); //該当するセルのメモを参照
+          
+             spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).clearNote();　//該当するセルのメモを消去
+             spreadSheet.getSheetByName(sheetName4).getRange(Arr5[i]).setNote( memo + String.fromCharCode(10) + String.fromCharCode(10) + "Commander:    " + "?" + String.fromCharCode(10) + "Result:    " + "?");　//該当するセルのメモを記入
+         
+        }
+         }
+        }
+      if(Arr[i] !== "--"){
+         if(spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).getValue() === "?" || spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).getValue() === "@" || spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).getValue() === "×"){
+         spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).clearNote();
+         spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).setNote( "Start time:    " + Arr4[i] + String.fromCharCode(10) + String.fromCharCode(10) + "front name:    " + Arr8[i] + String.fromCharCode(10) + "Province name:    " + Arr6[i] + String.fromCharCode(10) + "Map name:    " + Arr7[i] + String.fromCharCode(10) + String.fromCharCode(10) + "format:    " + Arr9[i] + String.fromCharCode(10) + "Start side:    " + Arr2[i] + String.fromCharCode(10) + "Enemy clan name:    " + Arr3[i]);
+      
+         if(spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).getValue() === "×"){
+            var memo = spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).getNote(); //該当するセルのメモを参照
+          
+            spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).clearNote();　//該当するセルのメモを消去
+            spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).setNote( memo + String.fromCharCode(10) + String.fromCharCode(10) + "Commander:    " + "?" + String.fromCharCode(10) + "Result:    " + "敗北");　//該当するセルのメモを記入      
+         }
+         
+         if(Arr2[i] === "seed"){
+            spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).setValue("→");
+            var memo = spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).getNote(); //該当するセルのメモを参照
+          
+            spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).clearNote();　//該当するセルのメモを消去
+            spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).setNote( memo + String.fromCharCode(10) + String.fromCharCode(10) + "Commander:    " + "?" + String.fromCharCode(10) + "Result:    " + "?");　//該当するセルのメモを記入
+         
+        }else{
+              if(Arr2[i] !== "?"){
+                spreadSheet.getSheetByName(sheetName2).getRange(Arr[i]).setValue("@");
+                }
+             }
+         }
+        spreadSheet.getSheetByName(sheetName3).getRange(Arr[i]).setValue(Arr3[i]);
+        }
+      }
+ 
+   getLog();
+   Logger.log(Arr2);
+   
+}
+
+function clearMemo(){
+
+  var id = "spreadsheetid";  
+  var spreadSheet = SpreadsheetApp.openById(id);  
+  var sheetName = "戦闘予定(CWE用)";
+  var sheetName2 ="対戦相手判別用";
+  var sheetName3 = "CWE戦闘予定(見る用)";
+  var lang1 = "-"
+  
+  spreadSheet.getSheetByName(sheetName).getRange("A11:BC109").clearNote();
+  spreadSheet.getSheetByName(sheetName3).getRange("A11:BC109").clearNote();
+  spreadSheet.getSheetByName(sheetName).getRange("P11:BC109").setValue(lang1);
+  spreadSheet.getSheetByName(sheetName2).getRange("P11:BC109").setValue(lang1);
+  }
